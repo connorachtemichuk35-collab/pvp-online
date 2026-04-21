@@ -11,37 +11,42 @@ export default function Game() {
 
   const keys = useRef({});
   const joystick = useRef({
-  active: false,
-  startX: 0,
-  startY: 0,
-  dx: 0,
-  dy: 0
-});
+    active: false,
+    startX: 0,
+    startY: 0,
+    dx: 0,
+    dy: 0
+  });
 
   const player = useRef({ x: 50, y: 200, w: 30, h: 30 });
-  const handleTouchStart = (e) => {
-  const touch = e.touches[0];
-  joystick.current.active = true;
-  joystick.current.startX = touch.clientX;
-  joystick.current.startY = touch.clientY;
-};
-
-const handleTouchMove = (e) => {
-  if (!joystick.current.active) return;
-  const touch = e.touches[0];
-
-  joystick.current.dx = touch.clientX - joystick.current.startX;
-  joystick.current.dy = touch.clientY - joystick.current.startY;
-};
-
-const handleTouchEnd = () => {
-  joystick.current.active = false;
-  joystick.current.dx = 0;
-  joystick.current.dy = 0;
-};
   const opponent = useRef({ x: 300, y: 200, w: 30, h: 30 });
 
-  // keyboard controls
+  // ✅ TOUCH CONTROLS (FIXED)
+  const handleTouchStart = (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    joystick.current.active = true;
+    joystick.current.startX = touch.clientX;
+    joystick.current.startY = touch.clientY;
+  };
+
+  const handleTouchMove = (e) => {
+    e.preventDefault();
+    if (!joystick.current.active) return;
+    const touch = e.touches[0];
+
+    joystick.current.dx = touch.clientX - joystick.current.startX;
+    joystick.current.dy = touch.clientY - joystick.current.startY;
+  };
+
+  const handleTouchEnd = (e) => {
+    e.preventDefault();
+    joystick.current.active = false;
+    joystick.current.dx = 0;
+    joystick.current.dy = 0;
+  };
+
+  // ✅ KEYBOARD
   useEffect(() => {
     const down = (e) => (keys.current[e.key] = true);
     const up = (e) => (keys.current[e.key] = false);
@@ -55,7 +60,7 @@ const handleTouchEnd = () => {
     };
   }, []);
 
-  // game + socket
+  // ✅ GAME LOOP
   useEffect(() => {
     if (!running) return;
 
@@ -78,15 +83,19 @@ const handleTouchEnd = () => {
     };
 
     function update() {
+      // keyboard
       if (keys.current["w"]) player.current.y -= 4;
       if (keys.current["s"]) player.current.y += 4;
       if (keys.current["a"]) player.current.x -= 4;
       if (keys.current["d"]) player.current.x += 4;
-	  if (joystick.current.active) {
-  player.current.x += joystick.current.dx * 0.05;
-  player.current.y += joystick.current.dy * 0.05;
-}
 
+      // joystick
+      if (joystick.current.active) {
+        player.current.x += joystick.current.dx * 0.05;
+        player.current.y += joystick.current.dy * 0.05;
+      }
+
+      // bounds
       player.current.x = Math.max(0, Math.min(370, player.current.x));
       player.current.y = Math.max(0, Math.min(370, player.current.y));
 
@@ -96,6 +105,7 @@ const handleTouchEnd = () => {
     function draw() {
       ctx.clearRect(0, 0, 400, 400);
 
+      // background
       ctx.fillStyle = "#ddd";
       ctx.fillRect(0, 0, 400, 400);
 
@@ -107,8 +117,30 @@ const handleTouchEnd = () => {
       ctx.fillStyle = "red";
       ctx.fillRect(opponent.current.x, opponent.current.y, 30, 30);
 
+      // text
       ctx.fillStyle = "black";
-      ctx.fillText("WASD to move", 10, 20);
+      ctx.fillText("WASD or touch to move", 10, 20);
+
+      // ✅ JOYSTICK DRAW
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(80, 280, 50, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
+
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(
+        80 + joystick.current.dx * 0.3,
+        280 + joystick.current.dy * 0.3,
+        20,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = "gray";
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
     }
 
     function loop() {
@@ -131,14 +163,14 @@ const handleTouchEnd = () => {
       />
 
       <canvas
-  ref={canvasRef}
-  width="400"
-  height="400"
-  onTouchStart={handleTouchStart}
-  onTouchMove={handleTouchMove}
-  onTouchEnd={handleTouchEnd}
-/>
-	  
+        ref={canvasRef}
+        width={400}
+        height={400}
+        style={{ width: "100%", maxWidth: "400px", touchAction: "none" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      />
 
       <br />
 
