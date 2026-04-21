@@ -1,5 +1,7 @@
 import Game from "./Game";
 
-export default function App() {
+function App() {
   return <Game />;
 }
+
+export default App;
