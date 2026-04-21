@@ -21,7 +21,7 @@ export default function Game() {
   const player = useRef({ x: 50, y: 200, w: 30, h: 30 });
   const opponent = useRef({ x: 300, y: 200, w: 30, h: 30 });
 
-  // ✅ TOUCH CONTROLS (FIXED)
+  // ✅ TOUCH CONTROLS
   const handleTouchStart = (e) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -33,8 +33,8 @@ export default function Game() {
   const handleTouchMove = (e) => {
     e.preventDefault();
     if (!joystick.current.active) return;
-    const touch = e.touches[0];
 
+    const touch = e.touches[0];
     joystick.current.dx = touch.clientX - joystick.current.startX;
     joystick.current.dy = touch.clientY - joystick.current.startY;
   };
@@ -83,16 +83,28 @@ export default function Game() {
     };
 
     function update() {
-      // keyboard
+      // keyboard movement
       if (keys.current["w"]) player.current.y -= 4;
       if (keys.current["s"]) player.current.y += 4;
       if (keys.current["a"]) player.current.x -= 4;
       if (keys.current["d"]) player.current.x += 4;
 
-      // joystick
+      // joystick movement (SMOOTH + SAME SPEED)
       if (joystick.current.active) {
-        player.current.x += joystick.current.dx * 0.05;
-        player.current.y += joystick.current.dy * 0.05;
+        const max = 50;
+
+        const dx = Math.max(-max, Math.min(max, joystick.current.dx));
+        const dy = Math.max(-max, Math.min(max, joystick.current.dy));
+
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        if (length > 2) {
+          const maxSpeed = 4;
+          const force = Math.min(length / max, 1);
+
+          player.current.x += (dx / length) * maxSpeed * force;
+          player.current.y += (dy / length) * maxSpeed * force;
+        }
       }
 
       // bounds
@@ -121,13 +133,14 @@ export default function Game() {
       ctx.fillStyle = "black";
       ctx.fillText("WASD or touch to move", 10, 20);
 
-      // ✅ JOYSTICK DRAW
+      // joystick base
       ctx.globalAlpha = 0.5;
       ctx.beginPath();
       ctx.arc(80, 280, 50, 0, Math.PI * 2);
       ctx.fillStyle = "black";
       ctx.fill();
 
+      // joystick knob
       ctx.globalAlpha = 0.8;
       ctx.beginPath();
       ctx.arc(
@@ -166,7 +179,11 @@ export default function Game() {
         ref={canvasRef}
         width={400}
         height={400}
-        style={{ width: "100%", maxWidth: "400px", touchAction: "none" }}
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          touchAction: "none"
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
