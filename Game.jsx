@@ -221,22 +221,22 @@ socket.current.on("opponent-move", (data) => {
         placeholder="Room name"
       />
 
-      <canvas
-        ref={canvasRef}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          touchAction: "none",
-          zIndex: 0
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      />
-
+    <canvas
+  ref={canvasRef}
+  style={{
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    touchAction: "none",
+    zIndex: -1,
+    pointerEvents: "none"
+  }}
+  onTouchStart={handleTouchStart}
+  onTouchMove={handleTouchMove}
+  onTouchEnd={handleTouchEnd}
+/>
       <br />
 
       <button
