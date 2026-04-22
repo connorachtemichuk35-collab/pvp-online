@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+   import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
 export default function Game() {
@@ -21,7 +21,7 @@ export default function Game() {
   const player = useRef({ x: 50, y: 200, w: 30, h: 30 });
   const opponent = useRef({ x: 300, y: 200, w: 30, h: 30 });
 
-  // ✅ TOUCH CONTROLS
+  // TOUCH CONTROLS
   const handleTouchStart = (e) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -46,7 +46,7 @@ export default function Game() {
     joystick.current.dy = 0;
   };
 
-  // ✅ KEYBOARD
+  // KEYBOARD
   useEffect(() => {
     const down = (e) => (keys.current[e.key] = true);
     const up = (e) => (keys.current[e.key] = false);
@@ -60,19 +60,20 @@ export default function Game() {
     };
   }, []);
 
-  // ✅ GAME LOOP
+  // GAME LOOP
   useEffect(() => {
     if (!running) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-	function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
 
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
     socket.current = io("https://online-pvp-server.onrender.com");
 
@@ -80,10 +81,6 @@ window.addEventListener("resize", resizeCanvas);
       setStatus("Connected");
       socket.current.emit("join-room", room);
     });
-	socket.current.on("connect_error", (err) => {
-  console.log("SOCKET ERROR:", err.message);
-  setStatus("Connection failed");
-});
 
     socket.current.on("opponent-move", (data) => {
       opponent.current = data;
@@ -94,13 +91,13 @@ window.addEventListener("resize", resizeCanvas);
     };
 
     function update() {
-      // keyboard movement
+      // keyboard
       if (keys.current["w"]) player.current.y -= 4;
       if (keys.current["s"]) player.current.y += 4;
       if (keys.current["a"]) player.current.x -= 4;
       if (keys.current["d"]) player.current.x += 4;
 
-      // joystick movement (SMOOTH + SAME SPEED)
+      // joystick
       if (joystick.current.active) {
         const max = 50;
 
@@ -119,18 +116,39 @@ window.addEventListener("resize", resizeCanvas);
       }
 
       // bounds
-   player.current.x = Math.max(0, Math.min(canvas.width - 30, player.current.x));
-player.current.y = Math.max(0, Math.min(canvas.height - 30, player.current.y));
+      player.current.x = Math.max(
+        0,
+        Math.min(canvas.width - 30, player.current.x)
+      );
+      player.current.y = Math.max(
+        0,
+        Math.min(canvas.height - 30, player.current.y)
+      );
 
       sendPosition();
     }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#ddd";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+      // background
+      ctx.fillStyle = "#ddd";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // GRID (visual upgrade)
+      ctx.strokeStyle = "#ccc";
+      for (let x = 0; x < canvas.width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
 
       // player
       ctx.fillStyle = "blue";
@@ -144,51 +162,47 @@ function draw() {
       ctx.fillStyle = "black";
       ctx.fillText("WASD or touch to move", 10, 20);
 
-      // joystick base
-    const baseX = 80;
-const baseY = canvas.height - 80;
+      // joystick
+      const baseX = 80;
+      const baseY = canvas.height - 80;
 
-// joystick base
-ctx.globalAlpha = 0.5;
-ctx.beginPath();
-ctx.arc(baseX, baseY, 50, 0, Math.PI * 2);
-ctx.fillStyle = "black";
-ctx.fill();
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(baseX, baseY, 50, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
 
-// joystick knob
-ctx.globalAlpha = 0.8;
-ctx.beginPath();
-ctx.arc(
-  baseX + joystick.current.dx * 0.3,
-  baseY + joystick.current.dy * 0.3,
-  20,
-  0,
-  Math.PI * 2
-);
-ctx.fillStyle = "gray";
-ctx.fill();
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(
+        baseX + joystick.current.dx * 0.3,
+        baseY + joystick.current.dy * 0.3,
+        20,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = "gray";
+      ctx.fill();
 
-ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1;
     }
 
- let animationFrameId;
+    let animationFrameId;
 
-function loop() {
-  update();
-  draw();
-  animationFrameId = requestAnimationFrame(loop);
-}
+    function loop() {
+      update();
+      draw();
+      animationFrameId = requestAnimationFrame(loop);
+    }
 
-loop();
+    loop();
 
-
-
-  return () => {
-  window.removeEventListener("resize", resizeCanvas);
-  if (socket.current) socket.current.disconnect();
-  cancelAnimationFrame(animationFrameId);
-};
-}, [running, room]);
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      if (socket.current) socket.current.disconnect();
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [running, room]);
 
   return (
     <div style={{ textAlign: "center" }}>
@@ -200,7 +214,7 @@ loop();
         placeholder="Room name"
       />
 
-  <canvas
+   <canvas
   ref={canvasRef}
   style={{
     position: "fixed",
@@ -208,18 +222,25 @@ loop();
     left: 0,
     width: "100vw",
     height: "100vh",
-    touchAction: "none"
+    touchAction: "none",
+    zIndex: 0   // 👈 ADD THIS LINE
   }}
-  onTouchStart={handleTouchStart}
-  onTouchMove={handleTouchMove}
-  onTouchEnd={handleTouchEnd}
-/>
+        
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      />
+
       <br />
 
-     <button onClick={() => {
-  console.log("JOIN CLICKED");
-  setRunning(true);
-}}>
+     <button
+  style={{ position: "relative", zIndex: 10 }}
+  onClick={() => {
+    console.log("JOIN CLICKED");
+    setStatus("Connecting...");
+    setRunning(true);
+  }}
+>
   Join Game
 </button>
 

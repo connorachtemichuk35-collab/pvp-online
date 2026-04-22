@@ -66,13 +66,6 @@ export default function Game() {
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-	function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
 
     socket.current = io("https://online-pvp-server.onrender.com");
 
@@ -80,10 +73,6 @@ window.addEventListener("resize", resizeCanvas);
       setStatus("Connected");
       socket.current.emit("join-room", room);
     });
-	socket.current.on("connect_error", (err) => {
-  console.log("SOCKET ERROR:", err.message);
-  setStatus("Connection failed");
-});
 
     socket.current.on("opponent-move", (data) => {
       opponent.current = data;
@@ -119,18 +108,18 @@ window.addEventListener("resize", resizeCanvas);
       }
 
       // bounds
-   player.current.x = Math.max(0, Math.min(canvas.width - 30, player.current.x));
-player.current.y = Math.max(0, Math.min(canvas.height - 30, player.current.y));
+      player.current.x = Math.max(0, Math.min(370, player.current.x));
+      player.current.y = Math.max(0, Math.min(370, player.current.y));
 
       sendPosition();
     }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function draw() {
+      ctx.clearRect(0, 0, 400, 400);
 
-  ctx.fillStyle = "#ddd";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+      // background
+      ctx.fillStyle = "#ddd";
+      ctx.fillRect(0, 0, 400, 400);
 
       // player
       ctx.fillStyle = "blue";
@@ -145,50 +134,36 @@ function draw() {
       ctx.fillText("WASD or touch to move", 10, 20);
 
       // joystick base
-    const baseX = 80;
-const baseY = canvas.height - 80;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(80, 280, 50, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
 
-// joystick base
-ctx.globalAlpha = 0.5;
-ctx.beginPath();
-ctx.arc(baseX, baseY, 50, 0, Math.PI * 2);
-ctx.fillStyle = "black";
-ctx.fill();
+      // joystick knob
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(
+        80 + joystick.current.dx * 0.3,
+        280 + joystick.current.dy * 0.3,
+        20,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = "gray";
+      ctx.fill();
 
-// joystick knob
-ctx.globalAlpha = 0.8;
-ctx.beginPath();
-ctx.arc(
-  baseX + joystick.current.dx * 0.3,
-  baseY + joystick.current.dy * 0.3,
-  20,
-  0,
-  Math.PI * 2
-);
-ctx.fillStyle = "gray";
-ctx.fill();
-
-ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1;
     }
 
- let animationFrameId;
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
 
-function loop() {
-  update();
-  draw();
-  animationFrameId = requestAnimationFrame(loop);
-}
-
-loop();
-
-
-
-  return () => {
-  window.removeEventListener("resize", resizeCanvas);
-  if (socket.current) socket.current.disconnect();
-  cancelAnimationFrame(animationFrameId);
-};
-}, [running, room]);
+    loop();
+  }, [running, room]);
 
   return (
     <div style={{ textAlign: "center" }}>
@@ -200,28 +175,23 @@ loop();
         placeholder="Room name"
       />
 
-  <canvas
-  ref={canvasRef}
-  style={{
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    touchAction: "none"
-  }}
-  onTouchStart={handleTouchStart}
-  onTouchMove={handleTouchMove}
-  onTouchEnd={handleTouchEnd}
-/>
+      <canvas
+        ref={canvasRef}
+        width={400}
+        height={400}
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          touchAction: "none"
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      />
+
       <br />
 
-     <button onClick={() => {
-  console.log("JOIN CLICKED");
-  setRunning(true);
-}}>
-  Join Game
-</button>
+      <button onClick={() => setRunning(true)}>Join Game</button>
 
       <p>{status}</p>
     </div>
