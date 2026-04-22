@@ -170,18 +170,18 @@ export default function Game() {
         value={room}
         onChange={(e) => setRoom(e.target.value)}
       />
-
-      <canvas
-        ref={canvasRef}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          zIndex: -1
-        }}
-      />
+<canvas
+  ref={canvasRef}
+  style={{
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    zIndex: -1,
+    pointerEvents: "none" // 🔥 THIS IS THE KEY FIX
+  }}
+/>
 
       <br />
 
