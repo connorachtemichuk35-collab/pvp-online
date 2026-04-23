@@ -8,23 +8,28 @@ export default function Game() {
   const keys = useRef({});
   const bullets = useRef([]);
 
-  const joystick = useRef({
-    active: false,
-    startX: 0,
-    startY: 0,
-    dx: 0,
-    dy: 0
+  const player = useRef({
+    x: 200,
+    y: 200,
+    hp: 100,
+    dirX: 1,
+    dirY: 0
   });
 
-  const player = useRef({ x: 100, y: 200, hp: 100 });
-  const enemy = useRef({ x: 500, y: 200, hp: 100 });
+  const enemy = useRef({
+    x: 500,
+    y: 300,
+    hp: 100
+  });
 
-  // KEYBOARD
+  // keyboard
   useEffect(() => {
     const down = (e) => {
       keys.current[e.key] = true;
 
-      if (e.key === " ") shoot();
+      if (e.key === " ") {
+        shoot();
+      }
     };
 
     const up = (e) => (keys.current[e.key] = false);
@@ -38,40 +43,15 @@ export default function Game() {
     };
   }, []);
 
-  // TOUCH
-  const handleTouchStart = (e) => {
-    const t = e.touches[0];
-    joystick.current.active = true;
-    joystick.current.startX = t.clientX;
-    joystick.current.startY = t.clientY;
-
-    shoot(); // tap to shoot
-  };
-
-  const handleTouchMove = (e) => {
-    if (!joystick.current.active) return;
-    const t = e.touches[0];
-
-    joystick.current.dx = t.clientX - joystick.current.startX;
-    joystick.current.dy = t.clientY - joystick.current.startY;
-  };
-
-  const handleTouchEnd = () => {
-    joystick.current.active = false;
-    joystick.current.dx = 0;
-    joystick.current.dy = 0;
-  };
-
   function shoot() {
     bullets.current.push({
       x: player.current.x + 15,
       y: player.current.y + 15,
-      vx: 6,
-      vy: 0
+      vx: player.current.dirX * 6,
+      vy: player.current.dirY * 6
     });
   }
 
-  // GAME LOOP
   useEffect(() => {
     if (!running) return;
 
@@ -87,24 +67,35 @@ export default function Game() {
     window.addEventListener("resize", resize);
 
     function update() {
-      // keyboard movement
-      if (keys.current["w"]) player.current.y -= 4;
-      if (keys.current["s"]) player.current.y += 4;
-      if (keys.current["a"]) player.current.x -= 4;
-      if (keys.current["d"]) player.current.x += 4;
-
-      // joystick movement
-      if (joystick.current.active) {
-        player.current.x += joystick.current.dx * 0.05;
-        player.current.y += joystick.current.dy * 0.05;
+      // movement
+      if (keys.current["w"]) {
+        player.current.y -= 4;
+        player.current.dirX = 0;
+        player.current.dirY = -1;
+      }
+      if (keys.current["s"]) {
+        player.current.y += 4;
+        player.current.dirX = 0;
+        player.current.dirY = 1;
+      }
+      if (keys.current["a"]) {
+        player.current.x -= 4;
+        player.current.dirX = -1;
+        player.current.dirY = 0;
+      }
+      if (keys.current["d"]) {
+        player.current.x += 4;
+        player.current.dirX = 1;
+        player.current.dirY = 0;
       }
 
       // bullets move
       bullets.current.forEach((b) => {
         b.x += b.vx;
+        b.y += b.vy;
       });
 
-      // collision
+      // hit detection
       bullets.current.forEach((b) => {
         if (
           b.x > enemy.current.x &&
@@ -112,24 +103,35 @@ export default function Game() {
           b.y > enemy.current.y &&
           b.y < enemy.current.y + 30
         ) {
-          enemy.current.hp -= 2;
+          enemy.current.hp -= 5;
+          b.x = -100; // remove bullet
         }
       });
 
-      // keep inside screen
-      player.current.x = Math.max(0, Math.min(canvas.width - 30, player.current.x));
-      player.current.y = Math.max(0, Math.min(canvas.height - 30, player.current.y));
+      // simple enemy movement
+      if (enemy.current.x > player.current.x) enemy.current.x -= 1;
+      if (enemy.current.x < player.current.x) enemy.current.x += 1;
+      if (enemy.current.y > player.current.y) enemy.current.y -= 1;
+      if (enemy.current.y < player.current.y) enemy.current.y += 1;
+
+      // enemy damage
+      if (
+        Math.abs(player.current.x - enemy.current.x) < 30 &&
+        Math.abs(player.current.y - enemy.current.y) < 30
+      ) {
+        player.current.hp -= 0.2;
+      }
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // background
-      ctx.fillStyle = "#eee";
+      ctx.fillStyle = "#111";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // player
-      ctx.fillStyle = "blue";
+      ctx.fillStyle = "cyan";
       ctx.fillRect(player.current.x, player.current.y, 30, 30);
 
       // enemy
@@ -137,7 +139,7 @@ export default function Game() {
       ctx.fillRect(enemy.current.x, enemy.current.y, 30, 30);
 
       // bullets
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "yellow";
       bullets.current.forEach((b) => {
         ctx.fillRect(b.x, b.y, 5, 5);
       });
@@ -146,35 +148,11 @@ export default function Game() {
       ctx.fillStyle = "green";
       ctx.fillRect(player.current.x, player.current.y - 10, player.current.hp, 5);
 
-      ctx.fillStyle = "green";
       ctx.fillRect(enemy.current.x, enemy.current.y - 10, enemy.current.hp, 5);
 
-      // joystick UI
-      const baseX = 80;
-      const baseY = canvas.height - 80;
-
-      ctx.globalAlpha = 0.5;
-      ctx.beginPath();
-      ctx.arc(baseX, baseY, 50, 0, Math.PI * 2);
-      ctx.fillStyle = "black";
-      ctx.fill();
-
-      ctx.globalAlpha = 0.8;
-      ctx.beginPath();
-      ctx.arc(
-        baseX + joystick.current.dx * 0.3,
-        baseY + joystick.current.dy * 0.3,
-        20,
-        0,
-        Math.PI * 2
-      );
-      ctx.fillStyle = "gray";
-      ctx.fill();
-
-      ctx.globalAlpha = 1;
-
-      ctx.fillStyle = "black";
-      ctx.fillText("WASD + SPACE | Tap to shoot", 10, 20);
+      // UI
+      ctx.fillStyle = "white";
+      ctx.fillText("WASD + SPACE", 20, 20);
     }
 
     let id;
@@ -193,8 +171,13 @@ export default function Game() {
   }, [running]);
 
   return (
-    <div style={{ textAlign: "center" }}>
-      <h2>🔥 PvP Game (Working)</h2>
+    <div>
+      <button
+        onClick={() => setRunning(true)}
+        style={{ position: "absolute", zIndex: 10 }}
+      >
+        Start Game
+      </button>
 
       <canvas
         ref={canvasRef}
@@ -203,20 +186,9 @@ export default function Game() {
           top: 0,
           left: 0,
           width: "100vw",
-          height: "100vh",
-          zIndex: 0
+          height: "100vh"
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       />
-
-      <button
-        style={{ position: "relative", zIndex: 10 }}
-        onClick={() => setRunning(true)}
-      >
-        Start Game
-      </button>
     </div>
   );
 }
